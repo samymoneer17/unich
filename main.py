@@ -1,6 +1,7 @@
 import requests
 import asyncio
 import time
+import random
 from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -23,7 +24,8 @@ class UnichBot:
         self.user_info = {}
         self.bot_settings = {
             'min_delay': 1,  # الحد الأدنى للتأخير بين الطلبات
-            'max_delay': 3   # الحد الأقصى للتأخير بين الطلبات
+            'max_delay': 3,   # الحد الأقصى للتأخير بين الطلبات
+            'max_accounts_per_user': 10  # الحد الأقصى للحسابات لكل مستخدم
         }
 
     # التحقق من أن المستخدم أدمن
@@ -33,7 +35,7 @@ class UnichBot:
     # التحقق من اشتراك المستخدم في القنوات المطلوبة
     async def check_subscription(self, user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
         if not self.mandatory_channels:
-            return True  # إذا لم يتم تعيين قنوات، نعتبر أن الشرط متحقق
+            return True
             
         for channel in self.mandatory_channels.values():
             try:
@@ -47,7 +49,6 @@ class UnichBot:
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
         
-        # حفظ معلومات المستخدم إذا كانت جديدة
         if str(user_id) not in self.user_info:
             user = update.effective_user
             self.user_info[str(user_id)] = {
@@ -56,7 +57,6 @@ class UnichBot:
                 'join_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
         
-        # التحقق من الاشتراك في القنوات
         if not await self.check_subscription(user_id, context):
             channels_text = "\n".join([f"👉 {channel['name']}: @{channel['username']}" 
                                      for channel in self.mandatory_channels.values()])
@@ -70,7 +70,6 @@ class UnichBot:
             )
             return
         
-        # قائمة الأدمن
         if self.is_admin(user_id):
             keyboard = [
                 [InlineKeyboardButton("➕ إضافة حساب", callback_data='add_account')],
@@ -112,6 +111,16 @@ class UnichBot:
             return
             
         if query.data == 'add_account':
+            user_id_str = str(user_id)
+            if len(self.user_tokens.get(user_id_str, [])) >= self.bot_settings['max_accounts_per_user']:
+                await query.edit_message_text(
+                    f"⚠️ لقد وصلت إلى الحد الأقصى للحسابات المسموح بها ({self.bot_settings['max_accounts_per_user'] حساب)",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("📋 عرض حساباتي", callback_data='list_accounts')]
+                    ])
+                )
+                return
+                
             await query.edit_message_text("أرسل التوكن الخاص بحساب يونيش:")
             context.user_data['awaiting_token'] = True
             
@@ -163,6 +172,7 @@ class UnichBot:
             [InlineKeyboardButton("📊 إحصائيات البوت", callback_data='admin_stats')],
             [InlineKeyboardButton("📣 إذاعة عامة", callback_data='admin_broadcast')],
             [InlineKeyboardButton("📌 إدارة القنوات", callback_data='admin_channels')],
+            [InlineKeyboardButton("⚙️ إعدادات البوت", callback_data='admin_settings')],
             [InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data='main_menu')]
         ]
         
@@ -176,14 +186,16 @@ class UnichBot:
         keyboard = [
             [InlineKeyboardButton("➕ إضافة قناة", callback_data='admin_add_channel')],
             [InlineKeyboardButton("📋 عرض القنوات", callback_data='admin_list_channels')],
+            [InlineKeyboardButton("🗑️ حذف قناة", callback_data='admin_delete_channel')],
             [InlineKeyboardButton("🔙 رجوع", callback_data='admin_panel')]
         ]
         
-        await query.edit_message_text()
-        "📌 إدارة القنوات الإجبارية:\n\n"
-        "اختر أحد الخيارات:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    
+        await query.edit_message_text(
+            "📌 إدارة القنوات الإجبارية:\n\n"
+            "اختر أحد الخيارات:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
     async def list_channels(self, query):
         if not self.mandatory_channels:
             await query.edit_message_text(
@@ -202,6 +214,7 @@ class UnichBot:
             f"📋 قائمة القنوات الإجبارية:\n\n{channels_list}",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("➕ إضافة قناة", callback_data='admin_add_channel')],
+                [InlineKeyboardButton("🗑️ حذف قناة", callback_data='admin_delete_channel')],
                 [InlineKeyboardButton("🔙 رجوع", callback_data='admin_panel')]
             ])
         )
@@ -253,6 +266,10 @@ class UnichBot:
             
         if context.user_data.get('awaiting_token'):
             token = update.message.text.strip()
+            if not token.startswith('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'):
+                await update.message.reply_text("⚠️ التوكن غير صحيح! يرجى إرسال توكن صحيح يبدأ بـ eyJhbGciOiJ...")
+                return
+                
             user_id_str = str(user_id)
             
             if user_id_str not in self.user_tokens:
@@ -266,14 +283,13 @@ class UnichBot:
             
             del context.user_data['awaiting_token']
             
-            # إرسال إشعار إلى الأدمن عند إضافة حساب جديد
             user_info = self.user_info.get(user_id_str, {})
             admin_message = (
                 "🆕 تم إضافة حساب جديد:\n\n"
                 f"👤 المستخدم: {user_info.get('name', 'غير معروف')}\n"
                 f"🆔 المعرف: @{user_info.get('username', 'غير معروف')}\n"
                 f"📅 تاريخ الإضافة: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-                f"🔑 التوكن: {token}"  # إظهار التوكن كاملاً
+                f"🔑 التوكن: {token[:15]}...{token[-15:]}"  # إظهار جزء من التوكن فقط للأمان
             )
             
             for admin_id in self.admin_ids:
@@ -295,7 +311,6 @@ class UnichBot:
             success = 0
             failed = 0
             
-            # تحديد وظيفة الإرسال بناءً على نوع المحتوى
             send_func = {
                 'text': context.bot.send_message,
                 'photo': context.bot.send_photo,
@@ -303,7 +318,6 @@ class UnichBot:
                 'audio': context.bot.send_audio
             }[broadcast_type]
             
-            # إعداد الوسائط
             if broadcast_type == 'text':
                 content = update.message.text
                 kwargs = {'text': content}
@@ -323,7 +337,6 @@ class UnichBot:
                 caption = update.message.caption or ""
                 kwargs = {broadcast_type: file_id, 'caption': caption}
             
-            # إرسال الإذاعة لكل المستخدمين
             for user in self.user_tokens.keys():
                 try:
                     await send_func(chat_id=int(user), **kwargs)
@@ -342,7 +355,6 @@ class UnichBot:
         elif context.user_data.get('awaiting_channel') and self.is_admin(user_id):
             new_channel = update.message.text.strip()
             if new_channel.startswith('@'):
-                # طلب اسم القناة
                 await update.message.reply_text("أرسل اسم القناة (مثال: قناة اليوتيوب):")
                 context.user_data['new_channel_username'] = new_channel
                 context.user_data['awaiting_channel_name'] = True
@@ -353,7 +365,14 @@ class UnichBot:
             channel_name = update.message.text.strip()
             channel_username = context.user_data['new_channel_username']
             
-            # إضافة القناة إلى القائمة
+            # التحقق من عدم وجود القناة مسبقاً
+            for existing_channel in self.mandatory_channels.values():
+                if existing_channel['username'] == channel_username[1:]:
+                    await update.message.reply_text("⚠️ هذه القناة مضافه مسبقاً!")
+                    del context.user_data['new_channel_username']
+                    del context.user_data['awaiting_channel_name']
+                    return
+            
             channel_id = f"channel_{len(self.mandatory_channels) + 1}"
             self.mandatory_channels[channel_id] = {
                 'name': channel_name,
@@ -420,26 +439,20 @@ class UnichBot:
             token = account['token']
             result = await self.process_unich_account(token, idx)
             
-            # التحقق مما إذا كان يجب جدولة إعادة التشغيل التلقائي
             if "الوقت المتبقي:" in result:
                 try:
-                    # استخراج الوقت المتبقي
                     remaining_time_line = [line for line in result.split('\n') if "الوقت المتبقي:" in line][0]
                     remaining_hours = float(remaining_time_line.split(":")[1].strip().split(" ")[0])
                     
                     if remaining_hours > 0:
-                        # جدولة إعادة التشغيل التلقائي
-                        account_key = f"{user_id}_{idx}_{int(time.time())}"  # مفتاح فريد لكل مهمة
+                        account_key = f"{user_id}_{idx}_{int(time.time())}"
                         self.schedule_auto_restart(user_id, idx, token, remaining_hours, context)
-                        
-                        # إضافة ملاحظة إعادة التشغيل التلقائي إلى النتيجة
                         result += f"\n\n⚠️ سيتم التشغيل تلقائياً بعد {remaining_hours:.1f} ساعة"
                 except Exception as e:
                     print(f"Error scheduling auto-restart: {e}")
             
             results.append(result)
             
-            # تأخير عشوائي بين الحسابات لتجنب الحظر
             delay = random.uniform(self.bot_settings['min_delay'], self.bot_settings['max_delay'])
             await asyncio.sleep(delay)
             
@@ -452,17 +465,13 @@ class UnichBot:
         )
 
     def schedule_auto_restart(self, user_id: str, account_idx: int, token: str, remaining_hours: float, context: ContextTypes.DEFAULT_TYPE):
-        """جدولة إعادة التشغيل التلقائي للحساب"""
-        account_key = f"{user_id}_{account_idx}_{int(time.time())}"  # مفتاح فريد
+        account_key = f"{user_id}_{account_idx}_{int(time.time())}"
         
-        # إلغاء المهمة الحالية إذا كانت موجودة
         if account_key in self.auto_restart_tasks:
             self.auto_restart_tasks[account_key].cancel()
             
-        # حساب وقت التأخير (مع إضافة بفاصل 5 دقائق)
         delay_seconds = remaining_hours * 3600 + 300
         
-        # جدولة المهمة الجديدة
         task = asyncio.create_task(
             self.auto_restart_account(user_id, account_idx, token, delay_seconds, context)
         )
@@ -470,14 +479,11 @@ class UnichBot:
         self.auto_restart_tasks[account_key] = task
 
     async def auto_restart_account(self, user_id: str, account_idx: int, token: str, delay_seconds: float, context: ContextTypes.DEFAULT_TYPE):
-        """إعادة تشغيل التعدين تلقائياً بعد التأخير"""
         try:
             await asyncio.sleep(delay_seconds)
             
-            # معالجة الحساب مرة أخرى
             result = await self.process_unich_account(token, account_idx)
             
-            # إعلام المستخدم
             try:
                 await context.bot.send_message(
                     chat_id=int(user_id),
@@ -486,14 +492,12 @@ class UnichBot:
             except Exception as e:
                 print(f"Error notifying user: {e}")
             
-            # التحقق مما إذا كان يجب جدولة إعادة تشغيل أخرى
             if "الوقت المتبقي:" in result:
                 try:
                     remaining_time_line = [line for line in result.split('\n') if "الوقت المتبقي:" in line][0]
                     remaining_hours = float(remaining_time_line.split(":")[1].strip().split(" ")[0])
                     
                     if remaining_hours > 0:
-                        # جدولة إعادة تشغيل جديدة بمفتاح فريد
                         new_account_key = f"{user_id}_{account_idx}_{int(time.time())}"
                         self.schedule_auto_restart(user_id, account_idx, token, remaining_hours, context)
                         await context.bot.send_message(
@@ -505,9 +509,6 @@ class UnichBot:
             
         except Exception as e:
             print(f"Error in auto-restart: {e}")
-        finally:
-            # التنظيف
-            pass  # لا نحذف المهمة هنا لأننا نستخدم مفاتيح فريدة
 
     async def process_unich_account(self, token: str, account_num: int) -> str:
         try:
@@ -516,11 +517,9 @@ class UnichBot:
                 'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36',
             }
             
-            # 1. بدء عملية التعدين
             mining_url = 'https://api.unich.com/airdrop/user/v1/mining/start'
             mining_resp = requests.post(mining_url, headers=headers)
             
-            # 2. المطالبة بالمهام الاجتماعية
             tasks_url = 'https://api.unich.com/airdrop/user/v1/social/list-by-user'
             tasks_resp = requests.get(tasks_url, headers=headers)
             tasks_data = tasks_resp.json()
@@ -538,7 +537,6 @@ class UnichBot:
                         if claim_resp.status_code == 200:
                             claimed_tasks += 1
             
-            # 3. جلب معلومات الحساب الكاملة
             info_url = 'https://api.unich.com/airdrop/user/v1/info/my-info'
             info_resp = requests.get(info_url, headers=headers)
             info_data = info_resp.json()
@@ -548,13 +546,11 @@ class UnichBot:
             
             data = info_data.get('data', {})
             
-            # معلومات الحساب الأساسية
             email = data.get('email', 'غير معروف')
             mUn = data.get('mUn', 0)
             has_password = "✅" if data.get('hasPassword') else "❌"
             firebase_provider = data.get('firebaseProvider', 'غير معروف')
             
-            # معلومات التعدين
             mining_data = data.get('mining', {})
             daily_reward = mining_data.get('dailyReward', 0)
             
@@ -565,17 +561,15 @@ class UnichBot:
             today_mining = mining_data.get('todayMining', {})
             mining_status = "✅ يعمل" if today_mining.get('started') else "❌ متوقف"
             mining_start_time = datetime.fromtimestamp(today_mining.get('startedAt', 0)/1000).strftime('%Y-%m-%d %H:%M:%S') if today_mining.get('startedAt') else 'غير متاح'
-            remaining_time = int(today_mining.get('remainingTimeInMillis', 0)) / (1000 * 60 * 60)  # تحويل إلى ساعات
+            remaining_time = int(today_mining.get('remainingTimeInMillis', 0)) / (1000 * 60 * 60)
             next_mining = today_mining.get('nextMiningAt', 'غير متاح')
             
-            # معلومات الإحالة
             referral_data = data.get('referral', {})
             referral_code = referral_data.get('myReferralCode', 'غير متوفر')
             referral_link = referral_data.get('myReferralLink', '')
             referral_points = referral_data.get('myPoint', 0)
             referral_reward = referral_data.get('reward', 0)
             
-            # مكافآت الإحالة
             bonus_info = ""
             bonuses = referral_data.get('bonus', [])
             if bonuses:
@@ -585,7 +579,6 @@ class UnichBot:
                     reward = bonus.get('reward', 0)
                     bonus_info += f"• عند {milestone} إحالة: {reward} نقطة\n"
             
-            # النقاط الإجمالية
             total_points = data.get('point', {}).get('totalPoint', 0)
             
             return (
@@ -620,7 +613,6 @@ def main():
     
     bot = UnichBot()
     
-    # إضافة المعالجات
     application.add_handler(CommandHandler('start', bot.start))
     application.add_handler(CallbackQueryHandler(bot.button_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, bot.handle_message))
