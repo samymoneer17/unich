@@ -1,3 +1,4 @@
+
 import requests
 import asyncio
 from datetime import datetime, timedelta
@@ -118,9 +119,9 @@ class UnichBot:
                 [InlineKeyboardButton("🎧 صوت", callback_data='broadcast_audio')],
                 [InlineKeyboardButton("🔙 رجوع", callback_data='admin_panel')]
             ]
-            await query.edit_message_text(
-                "اختر نوع المحتوى للإذاعة:",
-                reply_markup=InlineKeyboardMarkup(keyboard)
+            await query.edit_message_text()
+            "اختر نوع المحتوى للإذاعة:"
+            reply_markup=InlineKeyboardMarkup(keyboard)
             
         elif query.data == 'admin_set_channel':
             await query.edit_message_text("أرسل معرف القناة الجديدة (مثال: @channel_name):")
