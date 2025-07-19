@@ -17,22 +17,20 @@ class UnichBot:
     def __init__(self):
         self.user_tokens = {}
         self.user_status = {}
-        self.admin_ids = [7627857345]  # يمكن إضافة المزيد من الأدمنز هنا
-        self.mandatory_channels = {}  # تخزين القنوات الإجبارية
+        self.admin_ids = [7627857345]
+        self.mandatory_channels = {}
         self.auto_restart_tasks = {}
         self.user_mining_times = {}
         self.user_info = {}
         self.bot_settings = {
-            'min_delay': 1,  # الحد الأدنى للتأخير بين الطلبات
-            'max_delay': 3,   # الحد الأقصى للتأخير بين الطلبات
-            'max_accounts_per_user': 10  # الحد الأقصى للحسابات لكل مستخدم
+            'min_delay': 1,
+            'max_delay': 3,
+            'max_accounts_per_user': 10
         }
 
-    # التحقق من أن المستخدم أدمن
     def is_admin(self, user_id: int) -> bool:
         return user_id in self.admin_ids
 
-    # التحقق من اشتراك المستخدم في القنوات المطلوبة
     async def check_subscription(self, user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
         if not self.mandatory_channels:
             return True
@@ -114,7 +112,7 @@ class UnichBot:
             user_id_str = str(user_id)
             if len(self.user_tokens.get(user_id_str, [])) >= self.bot_settings['max_accounts_per_user']:
                 await query.edit_message_text(
-                    f"⚠️ لقد وصلت إلى الحد الأقصى للحسابات المسموح بها ({self.bot_settings['max_accounts_per_user'] حساب)",
+                    f"⚠️ لقد وصلت إلى الحد الأقصى للحسابات المسموح بها ({self.bot_settings['max_accounts_per_user']} حساب)",
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton("📋 عرض حساباتي", callback_data='list_accounts')]
                     ])
@@ -266,8 +264,20 @@ class UnichBot:
             
         if context.user_data.get('awaiting_token'):
             token = update.message.text.strip()
-            if not token.startswith('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'):
-                await update.message.reply_text("⚠️ التوكن غير صحيح! يرجى إرسال توكن صحيح يبدأ بـ eyJhbGciOiJ...")
+            
+            # تحقق محسن من صحة التوكن
+            if not self.validate_token(token):
+                await update.message.reply_text(
+                    "⚠️ التوكن غير صحيح! يرجى إرسال توكن صالح من تطبيق يونيش.\n"
+                    "طريقة الحصول على التوكن:\n"
+                    "1. افتح تطبيق يونيش\n"
+                    "2. انتقل إلى الإعدادات\n"
+                    "3. اختر 'معلومات الحساب'\n"
+                    "4. انسخ التوكن كما هو",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("🔄 حاول مرة أخرى", callback_data='add_account')]
+                    ])
+                )
                 return
                 
             user_id_str = str(user_id)
@@ -289,7 +299,7 @@ class UnichBot:
                 f"👤 المستخدم: {user_info.get('name', 'غير معروف')}\n"
                 f"🆔 المعرف: @{user_info.get('username', 'غير معروف')}\n"
                 f"📅 تاريخ الإضافة: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-                f"🔑 التوكن: {token[:15]}...{token[-15:]}"  # إظهار جزء من التوكن فقط للأمان
+                f"🔑 التوكن: {token[:15]}...{token[-15:]}"
             )
             
             for admin_id in self.admin_ids:
@@ -365,7 +375,6 @@ class UnichBot:
             channel_name = update.message.text.strip()
             channel_username = context.user_data['new_channel_username']
             
-            # التحقق من عدم وجود القناة مسبقاً
             for existing_channel in self.mandatory_channels.values():
                 if existing_channel['username'] == channel_username[1:]:
                     await update.message.reply_text("⚠️ هذه القناة مضافه مسبقاً!")
@@ -376,7 +385,7 @@ class UnichBot:
             channel_id = f"channel_{len(self.mandatory_channels) + 1}"
             self.mandatory_channels[channel_id] = {
                 'name': channel_name,
-                'username': channel_username[1:]  # إزالة @
+                'username': channel_username[1:]
             }
             
             del context.user_data['new_channel_username']
@@ -387,6 +396,26 @@ class UnichBot:
                 f"الاسم: {channel_name}\n"
                 f"المعرف: {channel_username}"
             )
+
+    def validate_token(self, token: str) -> bool:
+        """تحقق من صحة التوكن"""
+        try:
+            # تحقق من أن التوكن يحتوي على 3 أجزاء مفصولة بنقاط
+            parts = token.split('.')
+            if len(parts) != 3:
+                return False
+                
+            # تحقق من أن الجزء الأول يبدأ بـ eyJhbGciOiJ
+            if not parts[0].startswith('eyJhbGciOiJ'):
+                return False
+                
+            # تحقق من أن الأجزاء طويلة بما يكفي
+            if len(parts[1]) < 10 or len(parts[2]) < 10:
+                return False
+                
+            return True
+        except:
+            return False
 
     async def list_accounts(self, query):
         user_id = str(query.from_user.id)
