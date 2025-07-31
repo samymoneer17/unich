@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block page_title %}إضافة حساب جديد{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">إضافة حساب</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-plus-circle"></i> إضافة حساب يونيش جديد
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_token') }}">
+                    <div class="mb-3">
+                        <label for="token" class="form-label">توكن يونيش</label>
+                        <textarea class="form-control" id="token" name="token" rows="5" 
+                                  placeholder="أدخل توكن يونيش الخاص بك هنا..." required></textarea>
+                        <small class="text-muted">يجب أن يبدأ التوكن بـ eyJhbGciOiJ...</small>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle"></i> طريقة الحصول على التوكن:</h6>
+                        <ol>
+                            <li>افتح تطبيق يونيش على هاتفك</li>
+                            <li>انتقل إلى الإعدادات → معلومات الحساب</li>
+                            <li>انسخ التوكن كما هو</li>
+                            <li>الصقه في الحقل أعلاه</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> حفظ الحساب
+                        </button>
+                        <a href="{{ url_for('list_tokens') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-right"></i> عرض الحسابات
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
