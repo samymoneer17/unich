@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">إحصائيات الموقع</h5>
+                
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <h5>إجمالي الزيارات</h5>
+                                <h2>{{ stats[1] }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h5>إجمالي الحسابات</h5>
+                                <h2>{{ stats[2] }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <h5>آخر تحديث</h5>
+                                <h5>{{ stats[3] }}</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">إحصائيات المستخدمين</h5>
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>المستخدم</th>
+                                                <th>عدد الحسابات</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for user in users_stats %}
+                                            <tr>
+                                                <td>{{ user[0] }}</td>
+                                                <td>{{ user[1] }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">آخر 30 يوم من الزيارات</h5>
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>التاريخ</th>
+                                                <th>عدد الزيارات</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for visit in visits_data %}
+                                            <tr>
+                                                <td>{{ visit[0] }}</td>
+                                                <td>{{ visit[1] }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
