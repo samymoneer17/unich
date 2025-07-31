@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">الملف الشخصي</h5>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">معلومات الحساب</h5>
+                                <p><strong>اسم المستخدم:</strong> {{ user[1] }}</p>
+                                <p><strong>الاسم:</strong> {{ user[3] or 'غير محدد' }}</p>
+                                <p><strong>البريد الإلكتروني:</strong> {{ user[4] or 'غير محدد' }}</p>
+                                <p><strong>تاريخ الانضمام:</strong> {{ user[5] }}</p>
+                                <p><strong>آخر تسجيل دخول:</strong> {{ user[6] or 'غير معروف' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">إحصائيات الحساب</h5>
+                                <p><strong>عدد الحسابات المضافة:</strong> {{ token_count }}</p>
+                                <div class="d-grid gap-2">
+                                    <a href="{{ url_for('change_password') }}" class="btn btn-warning">تغيير كلمة المرور</a>
+                                    {% if is_admin %}
+                                    <a href="{{ url_for('stats') }}" class="btn btn-info">إحصائيات الموقع</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
