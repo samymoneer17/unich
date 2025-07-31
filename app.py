@@ -8,7 +8,7 @@ import os
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = 'samymoneer'
+app.secret_key = 'your_secret_key_here'
 app.config['SITE_NAME'] = 'ScriptUnich.com'
 
 # تعريف فلتر تنسيق التاريخ
@@ -221,9 +221,10 @@ def register():
                 return redirect(url_for('register'))
             
             hashed_password = generate_password_hash(password)
-            cursor.execute()
-            'INSERT INTO users (username, password, name, email, join_date) VALUES (?, ?, ?, ?, ?)',
-            (username, hashed_password, name, email, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            cursor.execute(
+                'INSERT INTO users (username, password, name, email, join_date) VALUES (?, ?, ?, ?, ?)',
+                (username, hashed_password, name, email, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            )
             conn.commit()
         
         flash('✅ تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول', 'success')
