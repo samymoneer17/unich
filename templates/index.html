@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">مرحباً بك في ScriptUnich.com</h5>
+                <p class="card-text">
+                    هذا الموقع يسمح لك بإدارة حسابات يونيش الخاصة بك وتشغيل المهام التلقائية.
+                </p>
+                
+                <div class="row mt-4">
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="bi bi-person"></i> حساباتي</h5>
+                                <h3>{{ tokens_count }}</h3>
+                                <a href="{{ url_for('list_tokens') }}" class="btn btn-light btn-sm">عرض</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="bi bi-plus-circle"></i> إضافة حساب</h5>
+                                <p>أضف حساب يونيش جديد</p>
+                                <a href="{{ url_for('add_token') }}" class="btn btn-light btn-sm">إضافة</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body text-center">
+                                <h5><i class="bi bi-lightning-charge"></i> تشغيل المهام</h5>
+                                <p>تشغيل المهام على جميع الحسابات</p>
+                                <a href="{{ url_for('run_tasks') }}" class="btn btn-dark btn-sm">تشغيل</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if is_admin %}
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">إحصائيات الموقع</h5>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="card bg-info text-white">
+                                            <div class="card-body text-center">
+                                                <h5>إجمالي الزيارات</h5>
+                                                <h3>{{ stats[1] }}</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-secondary text-white">
+                                            <div class="card-body text-center">
+                                                <h5>إجمالي الحسابات</h5>
+                                                <h3>{{ stats[2] }}</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-dark text-white">
+                                            <div class="card-body text-center">
+                                                <h5>آخر تحديث</h5>
+                                                <h5>{{ stats[3] }}</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-center mt-3">
+                                    <a href="{{ url_for('stats') }}" class="btn btn-primary">عرض التفاصيل</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
