@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block page_title %}لوحة التحكم{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">لوحة التحكم</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <i class="bi bi-speedometer2"></i> نظرة عامة على النظام
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-4">
+                        <div class="card stat-card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="bi bi-people"></i> المستخدمين</h5>
+                                <h3>{{ stats[1] }}</h3>
+                                <p class="mb-0">إجمالي المستخدمين المسجلين</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="card stat-card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="bi bi-wallet2"></i> الحسابات</h5>
+                                <h3>{{ stats[2] }}</h3>
+                                <p class="mb-0">إجمالي الحسابات النشطة</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="card stat-card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="bi bi-coin"></i> النقاط</h5>
+                                <h3>{{ stats[3] }}</h3>
+                                <p class="mb-0">إجمالي النقاط المجمعة</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="card stat-card bg-warning text-dark">
+                            <div class="card-body text-center">
+                                <h5><i class="bi bi-activity"></i> الزوار</h5>
+                                <h3>{{ stats[0] }}</h3>
+                                <p class="mb-0">إجمالي زوار الموقع</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <i class="bi bi-people-fill"></i> آخر المستخدمين المسجلين
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>اسم المستخدم</th>
+                                                <th>الاسم</th>
+                                                <th>تاريخ التسجيل</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for user in recent_users %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>{{ user[1] }}</td>
+                                                <td>{{ user[2] }}</td>
+                                                <td>{{ user[3]|datetimeformat }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <i class="bi bi-list-check"></i> آخر الأنشطة
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group" style="max-height: 400px; overflow-y: auto;">
+                                    {% for activity in activities %}
+                                    <div class="list-group-item">
+                                        <div class="d-flex justify-content-between">
+                                            <small class="text-muted">{{ activity[2]|datetimeformat }}</small>
+                                            <span class="badge bg-{{ 'primary' if activity[3] else 'secondary' }}">
+                                                {{ activity[3] or 'System' }}
+                                            </span>
+                                        </div>
+                                        <p class="mb-1">
+                                            <strong>{{ activity[0] }}</strong>: {{ activity[1] }}
+                                        </p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
