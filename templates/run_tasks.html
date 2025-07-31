@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block page_title %}تشغيل المهام{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">تشغيل المهام</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-lightning-charge"></i> تشغيل المهام على الحسابات</h5>
+            </div>
+            
+            <div class="card-body">
+                {% if not tokens %}
+                <div class="alert alert-warning text-center">
+                    <i class="bi bi-exclamation-triangle"></i> لا توجد حسابات مسجلة!
+                    <a href="{{ url_for('add_token') }}" class="alert-link">اضغط هنا لإضافة حساب جديد</a>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-info-circle"></i> معلومات:</h6>
+                    <ul class="mb-0">
+                        <li>سيتم تشغيل المهام على جميع الحسابات النشطة</li>
+                        <li>قد تستغرق العملية بعض الوقت حسب عدد الحسابات</li>
+                        <li>المهام تعمل تلقائياً كل 24 ساعة</li>
+                    </ul>
+                </div>
+                
+                <div class="d-flex justify-content-between mb-4">
+                    <button id="runAllTasks" class="btn btn-primary">
+                        <i class="bi bi-lightning-charge"></i> تشغيل جميع المهام
+                    </button>
+                    
+                    <div class="d-flex align-items-center">
+                        <span id="progressText" class="badge bg-info"></span>
+                    </div>
+                    
+                    <a href="{{ url_for('list_tokens') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-right"></i> عرض الحسابات
+                    </a>
+                </div>
+                
+                <div id="resultsContainer" class="row"></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const runAllBtn = document.getElementById('runAllTasks');
+    const progressText = document.getElementById('progressText');
+    const resultsContainer = document.getElementById('resultsContainer');
+    
+    if (runAllBtn) {
+        runAllBtn.addEventListener('click', async function() {
+            const btn = this;
+            const tokenIds = {{ tokens|map(attribute='0')|list|tojson }};
+            let successCount = 0;
+            let failedCount = 0;
+            
+            // تهيئة الواجهة
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري التشغيل...';
+            progressText.textContent = 'جاري التحضير...';
+            resultsContainer.innerHTML = '<div class="col-12"><div class="alert alert-info">جاري معالجة الحسابات، يرجى الانتظار...</div></div>';
+            
+            try {
+                let allResults = '';
+                
+                for (const [index, tokenId] of tokenIds.entries()) {
+                    progressText.textContent = `جاري معالجة الحساب ${index + 1} من ${tokenIds.length}...`;
+                    
+                    try {
+                        const response = await fetch(`/api/process_account/${tokenId}`);
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            successCount++;
+                            allResults += `
+                                <div class="col-md-6 mb-3">
+                                    <div class="card border-success">
+                                        <div class="card-header bg-success text-white">
+                                            <i class="bi bi-check-circle"></i> الحساب ${result.account_num || tokenId} - ${result.email || 'غير معروف'}
+                                        </div>
+                                        <div class="card-body">
+                                            <p><strong>الحالة:</strong> ${result.mining_status ? '✅ يعمل' : '❌ متوقف'}</p>
+                                            <p><strong>النقاط:</strong> ${result.points || result.total_points || 'غير متاح'}</p>
+                                            <p><strong>المهام المطالبة بها:</strong> ${result.claimed_tasks || result.completed_tasks || 'غير متاح'}</p>
+                                            ${result.next_run ? `<p><strong>التشغيل القادم:</strong> ${new Date(result.next_run).toLocaleString('ar-EG')}</p>` : ''}
+                                            ${result.remaining_time ? `<p><strong>الوقت المتبقي:</strong> ${result.remaining_time.toFixed(1)} ساعة</p>` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            failedCount++;
+                            allResults += `
+                                <div class="col-md-6 mb-3">
+                                    <div class="card border-danger">
+                                        <div class="card-header bg-danger text-white">
+                                            <i class="bi bi-exclamation-triangle"></i> الحساب ${tokenId} - خطأ
+                                        </div>
+                                        <div class="card-body">
+                                            <p>${result.message || 'حدث خطأ غير معروف'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        // تأخير عشوائي بين الطلبات
+                        await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
+                        
+                    } catch (error) {
+                        failedCount++;
+                        allResults += `
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-danger">
+                                    <div class="card-header bg-danger text-white">
+                                        <i class="bi bi-exclamation-triangle"></i> الحساب ${tokenId} - خطأ
+                                    </div>
+                                    <div class="card-body">
+                                        <p>حدث خطأ في الاتصال بالخادم</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                // عرض النتائج
+                resultsContainer.innerHTML = `
+                    <div class="col-12 mb-3">
+                        <div class="alert alert-${failedCount === 0 ? 'success' : failedCount === tokenIds.length ? 'danger' : 'warning'}">
+                            <i class="bi bi-${failedCount === 0 ? 'check-circle' : failedCount === tokenIds.length ? 'x-circle' : 'exclamation-triangle'}"></i>
+                            تم الانتهاء من معالجة جميع الحسابات: ${successCount} نجاح, ${failedCount} فشل
+                        </div>
+                    </div>
+                    ${allResults}
+                `;
+                
+                progressText.textContent = `تم الانتهاء: ${successCount} نجاح, ${failedCount} فشل`;
+                btn.innerHTML = '<i class="bi bi-check-circle"></i> تم الانتهاء';
+                
+            } catch (error) {
+                resultsContainer.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-danger">
+                            <i class="bi bi-x-circle"></i> حدث خطأ غير متوقع: ${error.message}
+                        </div>
+                    </div>
+                `;
+                progressText.textContent = 'حدث خطأ';
+                btn.innerHTML = '<i class="bi bi-lightning-charge"></i> حاول مرة أخرى';
+                btn.disabled = false;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
