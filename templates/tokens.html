@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="card-title mb-0">الحسابات المسجلة</h5>
+                    <a href="{{ url_for('add_token') }}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-plus"></i> إضافة حساب
+                    </a>
+                </div>
+                
+                {% if not tokens %}
+                    <div class="alert alert-warning">
+                        ⚠️ لا توجد حسابات مسجلة!
+                    </div>
+                    <a href="{{ url_for('add_token') }}" class="btn btn-primary">إضافة حساب جديد</a>
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>التوكن</th>
+                                    <th>تاريخ الإضافة</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for token in tokens %}
+                                    <tr>
+                                        <td>{{ loop.index }}</td>
+                                        <td>{{ token[2][:10] }}...</td>
+                                        <td>{{ token[3]|datetimeformat }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if token[4] else 'danger' }}">
+                                                {{ 'نشط' if token[4] else 'غير نشط' }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('run_tasks') }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-lightning-charge"></i> تشغيل
+                                            </a>
+                                            <form method="POST" action="{{ url_for('delete_token', token_id=token[0]) }}" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('هل أنت متأكد من حذف هذا الحساب؟')">
+                                                    <i class="bi bi-trash"></i> حذف
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
